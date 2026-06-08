@@ -479,34 +479,42 @@
 }
 
     function inicializarInterfaz() {
-        const elementosAdmin = document.querySelectorAll(".admin-only");
-        elementosAdmin.forEach(el => {
-            el.style.display = esAdmin ? "inline-block" : "none";
-            if (el.tagName === "TH" || el.tagName === "TD") {
-                el.style.display = esAdmin ? "table-cell" : "none";
+    const elementosAdmin = document.querySelectorAll(".admin-only");
+    elementosAdmin.forEach(el => {
+        el.style.display = esAdmin ? "inline-block" : "none";
+        if (el.tagName === "TH" || el.tagName === "TD") {
+            el.style.display = esAdmin ? "table-cell" : "none";
+        }
+    });
+
+    // Cargar datos SIEMPRE de Firebase
+    database.ref("preferencias").once("value").then((snapshot) => {
+        const datos = snapshot.val() || [];
+        localStorage.setItem("preferencias_participantes", JSON.stringify(datos)); // Respaldo local
+        
+        const tbody = document.querySelector("#participantsTable tbody");
+        tbody.innerHTML = "";
+        
+        datos.forEach(p => {
+            if (esAdmin || p.nombre.toLowerCase() === usuarioLogueado.toLowerCase()) {
+                crearEstructuraFila(Date.now() + Math.random(), p, !esAdmin);
             }
         });
-        document.getElementById("btnGuardar").innerText = esAdmin ? "Save Data" : "Save Data";
-        
-        cargarDatosDeLocalStorage();
-        
+
+        // Lógica de usuario nuevo
         if (!esAdmin) {
-            const datos = obtenerDatosBD();
             const yaRegistrado = datos.some(p => p.nombre.toLowerCase() === usuarioLogueado.toLowerCase());
             if (yaRegistrado) {
                 bloquearCamposFila(true);
                 document.getElementById("btnEditar").style.display = "inline-block";
                 document.getElementById("btnGuardar").style.display = "none";
             } else {
-                const tbody = document.querySelector("#participantsTable tbody");
-                if(tbody.children.length === 0) {
-                    crearEstructuraFila(1, { nombre: usuarioLogueado }, true);
-                }
-                document.getElementById("btnGuardar").disabled = true;
+                crearEstructuraFila(1, { nombre: usuarioLogueado }, true);
+                document.getElementById("btnGuardar").disabled = false;
             }
         }
-        document.getElementById("foodForm").addEventListener("input", marcarCambios);
-    }
+    });
+}
 
     function marcarCambios() {
         cambiosSinGuardar = true;
@@ -527,33 +535,22 @@
     }
 
     function ejecutarGuardado() {
-    
-    let nuevosDatos = recolectarDatosTabla();
-    let baseDatosActual = obtenerDatosBD();
+    database.ref("preferencias").once("value").then((snapshot) => {
+        let baseDatosActual = snapshot.val() || [];
+        let nuevosDatos = recolectarDatosTabla();
 
-    // Lógica para actualizar el array
-    if (!esAdmin) {
-        let registroParticipante = nuevosDatos[0];
-        let index = baseDatosActual.findIndex(p => p.nombre.toLowerCase() === usuarioLogueado.toLowerCase());
-        if (index !== -1) baseDatosActual[index] = registroParticipante;
-        else baseDatosActual.push(registroParticipante);
-    } else {
-        baseDatosActual = nuevosDatos;
-    }
+        if (!esAdmin) {
+            let index = baseDatosActual.findIndex(p => p.nombre.toLowerCase() === usuarioLogueado.toLowerCase());
+            if (index !== -1) baseDatosActual[index] = nuevosDatos[0];
+            else baseDatosActual.push(nuevosDatos[0]);
+        } else {
+            baseDatosActual = nuevosDatos;
+        }
 
-    // 1. Guardar en LocalStorage
-    localStorage.setItem("preferencias_participantes", JSON.stringify(baseDatosActual));
-
-    // 2. Sincronizar con Firebase
-    database.ref("preferencias").set(baseDatosActual)
-    .then(() => {
-        alert("¡Guardado correctamente en la nube!");
-        cambiosSinGuardar = false;
-        // NO recargues la página aquí para no perder el estado
-        inicializarInterfaz();
-    })
-    .catch((error) => {
-        alert("Error al guardar: " + error.message);
+        database.ref("preferencias").set(baseDatosActual).then(() => {
+            alert("¡Sincronizado con la nube!");
+            inicializarInterfaz();
+        });
     });
 }
 
@@ -585,21 +582,14 @@
     }
 
     function eliminarFila(boton) {
-    // Eliminamos la fila de la interfaz
-    boton.closest("tr").remove();
+    if(!confirm("¿Eliminar este registro?")) return;
     
-    // Recolectamos los datos que quedaron en la tabla
+    boton.closest("tr").remove();
     let datosRestantes = recolectarDatosTabla();
     
-    // Guardamos el nuevo estado (sin la fila eliminada) en Firebase
-    database.ref("preferencias").set(datosRestantes, (error) => {
-        if (error) {
-            alert("Error updating data: " + error.message);
-        } else {
-            // Actualizamos el respaldo local
-            localStorage.setItem("preferencias_participantes", JSON.stringify(datosRestantes));
-            console.log("Fila eliminada y base de datos sincronizada.");
-        }
+    // Sobrescribir con los datos limpios
+    database.ref("preferencias").set(datosRestantes).then(() => {
+        alert("Fila eliminada y base de datos actualizada.");
     });
 }
 
