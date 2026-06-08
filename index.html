@@ -470,43 +470,60 @@
     let cambiosSinGuardar = false;
 
     function verificarAdminUser(val) {
-        const adminBox = document.getElementById("admin-box");
-        const participanteBox = document.getElementById("participante-box");
-        const chkParticipante = document.getElementById("chk-participante");
-        const chkAdmin = document.getElementById("chk-admin");
+    const adminBox = document.getElementById("admin-box");
+    const participanteBox = document.getElementById("participante-box");
+    const chkParticipante = document.getElementById("chk-participante");
+    const chkAdmin = document.getElementById("chk-admin");
 
-        if (val.trim() === "miguel_admin") {
-            participanteBox.style.display = "none";
-            chkParticipante.required = false;
-            chkParticipante.checked = false;
-            adminBox.style.display = "flex";
-            chkAdmin.required = true;
-        } else {
-            participanteBox.style.display = "flex";
-            chkParticipante.required = true;
-            adminBox.style.display = "none";
-            chkAdmin.required = false;
-            chkAdmin.checked = false;
+    if (val.trim() === "miguel_admin") {
+        participanteBox.style.display = "none";
+        chkParticipante.required = false; 
+        chkParticipante.checked = false; // Desmarcar el otro
+        adminBox.style.display = "flex";
+        chkAdmin.required = true;         // Ahora es obligatorio
+    } else {
+        participanteBox.style.display = "flex";
+        chkParticipante.required = true;  // Ahora es obligatorio
+        adminBox.style.display = "none";
+        chkAdmin.required = false;
+        chkAdmin.checked = false;        // Desmarcar el otro
+    }
+}
+
+    function procesarLogin(event) {
+    const user = document.getElementById("username").value.trim();
+    const chkAdmin = document.getElementById("chk-admin");
+    const chkParticipante = document.getElementById("chk-participante");
+
+    // Validar si el campo nombre está vacío
+    if (!user) {
+        mostrarNotificacion("Please enter your name.", "error");
+        return;
+    }
+
+    // Validar checkbox según el usuario
+    if (user === "miguel_admin") {
+        if (!chkAdmin.checked) {
+            mostrarNotificacion("Please confirm you are an Administrator.", "error");
+            return;
+        }
+    } else {
+        if (!chkParticipante.checked) {
+            mostrarNotificacion("Please confirm you are a Participant.", "error");
+            return;
         }
     }
 
-    function procesarLogin(event) {
-        event.preventDefault();
-        const user = document.getElementById("username").value.trim();
-        const chkAdmin = document.getElementById("chk-admin").checked;
+    // Si todo es correcto, prevenir el comportamiento por defecto y procesar
+    event.preventDefault();
+    usuarioLogueado = user;
+    esAdmin = (user === "miguel_admin" && chkAdmin.checked);
+    
+    document.getElementById("loginCard").style.display = "none";
+    document.getElementById("appContainer").style.display = "block";
+    document.getElementById("user-display").innerText = `User: ${user} (${esAdmin ? 'Admin' : 'Participant'})`;
 
-        usuarioLogueado = user;
-        esAdmin = (user === "miguel_admin" && chkAdmin);
-        document.getElementById("loginCard").style.display = "none";
-        document.getElementById("appContainer").style.display = "block";
-        document.getElementById("user-display").innerText = `Usuario: ${user} (${esAdmin ? 'Admin' : 'Participante'})`;
-
-        inicializarInterfaz();
-    }
-
-    function limpiarBaseDatos() {
-    // En lugar de confirm(), mostramos el modal
-    document.getElementById("confirmModal").style.display = "flex";
+    inicializarInterfaz();
 }
 
 function cerrarConfirmacion(confirmado) {
