@@ -518,6 +518,7 @@ function cerrarConfirmacion(confirmado) {
                 mostrarNotificacion("Error clearing data: " + error.message, "error");
             } else {
                 mostrarNotificacion("All data cleared successfully.");
+                inicializarInterfaz();
             }
         });
     }
