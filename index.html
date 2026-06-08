@@ -505,7 +505,14 @@
     }
 
     function limpiarBaseDatos() {
-    if (confirm("Are you sure you want to completely clear ALL participant data?")) {
+    // En lugar de confirm(), mostramos el modal
+    document.getElementById("confirmModal").style.display = "flex";
+}
+
+function cerrarConfirmacion(confirmado) {
+    document.getElementById("confirmModal").style.display = "none";
+    if (confirmado) {
+        // Aquí ejecutas la lógica de borrado original
         database.ref("preferencias").set([], (error) => {
             if (error) {
                 mostrarNotificacion("Error clearing data: " + error.message, "error");
@@ -756,6 +763,12 @@ function verificarEstadoGuardado() {
     document.body.removeChild(link);
 }
 </script>
-
+<div id="confirmModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:10000; align-items:center; justify-content:center;">
+    <div style="background:white; padding:25px; border-radius:12px; text-align:center; box-shadow:0 10px 25px rgba(0,0,0,0.2);">
+        <p>Are you sure you want to completely clear ALL participant data?</p>
+        <button onclick="cerrarConfirmacion(true)" style="background:#ef4444; color:white; border:none; padding:10px 20px; border-radius:6px; cursor:pointer;">Yes, clear all</button>
+        <button onclick="cerrarConfirmacion(false)" style="background:#6b7280; color:white; border:none; padding:10px 20px; border-radius:6px; cursor:pointer;">Cancel</button>
+    </div>
+</div>
 </body>
 </html>
