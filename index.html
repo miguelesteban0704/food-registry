@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Food Registry System</title>
+    <style>
+        :root {
+            --primary-color: #4f46e5;
+            --primary-hover: #4338ca;
+            --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --text-main: #1f2937;
+            --text-muted: #4b5563;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-gradient);
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            box-sizing: border-box;
+        }
+
+        /* --- LOGIN CARD --- */
+        .login-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+            padding: 40px 30px;
+            width: 100%;
+            max-width: 400px;
+            margin-top: 10vh;
+            box-sizing: border-box;
+            text-align: center;
+        }
+
+        .login-card h3 {
+            color: #312e81;
+            margin-bottom: 25px;
+            font-size: 1.6rem;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 6px;
+            color: var(--text-main);
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .input-group input[type="text"] {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+
+        .checkbox-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+            justify-content: flex-start;
+            min-height: 24px;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 14px;
+            color: var(--text-main);
+            cursor: pointer;
+        }
+
+        .checkbox-label input {
+            accent-color: var(--primary-color);
+            width: 16px;
+            height: 16px;
+        }
+
+        #admin-box {
+            display: none;
+        }
+
+        /* --- MAIN CONTAINER --- */
+        .container {
+            display: none;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+            padding: 30px 20px;
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+
+        .header-app {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        h2 {
+            color: #312e81;
+            margin: 0;
+            font-size: 1.6rem;
+            font-weight: 700;
+        }
+
+        .user-info {
+            font-size: 14px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+            width: 100%;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            text-align: left;
+            font-size: 13px;
+        }
+
+        th {
+            background-color: #f3f4f6;
+            color: var(--text-main);
+            padding: 16px 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 0.05em;
+            border-bottom: 2px solid #e5e7eb;
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 12px 10px;
+            border-bottom: 1px solid #edf2f7;
+            color: var(--text-muted);
+            vertical-align: middle;
+        }
+
+        tr:hover {
+            background-color: #f9fafb;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 13px;
+            min-width: 140px;
+        }
+
+        input[type="text"]:disabled, select:disabled, input[type="radio"]:disabled {
+            background-color: #f3f4f6;
+            color: #1f2937 !important;
+            cursor: not-allowed;
+            opacity: 0.9;
+        }
+
+        select {
+            width: 100%;
+            max-width: 150px;
+            padding: 8px 24px 8px 8px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            background-color: #fff;
+            font-size: 13px;
+            cursor: pointer;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234b5563' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 8px center;
+            background-size: 14px;
+        }
+
+        select option {
+            white-space: normal;
+            font-size: 14px;
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            align-items: center;
+            white-space: nowrap;
+            min-width: 90px;
+        }
+
+        .radio-label {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+        }
+
+        .radio-label input[type="radio"] {
+            accent-color: var(--primary-color);
+        }
+
+        .btn-container {
+            display: flex;
+            gap: 15px;
+            justify-content: space-between;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .right-buttons {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .btn-login {
+            background-color: var(--primary-color);
+            color: white;
+            width: 100%;
+        }
+        .btn-login:hover { background-color: var(--primary-hover); }
+
+        .btn-add { background-color: #10b981; color: white; }
+        .btn-add:hover { background-color: #059669; }
+        .btn-add:disabled { background-color: #a7f3d0; cursor: not-allowed; }
+
+        .btn-edit { background-color: #f59e0b; color: white; display: none; }
+        .btn-edit:hover { background-color: #d97706; }
+
+        .btn-excel { background-color: #217346; color: white; }
+        .btn-excel:hover { background-color: #1a5c38; }
+
+        .btn-clear { background-color: #6b7280; color: white; }
+        .btn-clear:hover { background-color: #4b5563; }
+
+        .btn-logout {
+            background-color: #f3f4f6;
+            color: #374151;
+            padding: 6px 12px;
+            font-size: 12px;
+            border-radius: 6px;
+        }
+        .btn-logout:hover { background-color: #e5e7eb; }
+
+        .btn-delete {
+            background-color: #ef4444;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+        }
+        .btn-delete:hover { background-color: #dc2626; }
+
+        .admin-only { display: none; }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .login-card {
+                padding: 30px 20px;
+                margin-top: 5vh;
+            }
+
+            .container {
+                padding: 20px 15px;
+                border-radius: 12px;
+            }
+
+            .header-app {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .user-info {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .btn-container {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .btn-container > div, 
+            .right-buttons {
+                display: flex;
+                flex-direction: column;
+                width: 100%;
+                gap: 10px;
+            }
+
+            .btn {
+                width: 100%;
+                box-sizing: border-box;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="login-card" id="loginCard">
+    <h3>Sign In</h3>
+    <form id="loginForm" onsubmit="procesarLogin(event)">
+        <div class="input-group">
+            <label for="username">Participant Name</label>
+            <input type="text" id="username" placeholder="Type your name here..." required oninput="verificarAdminUser(this.value)">
+        </div>
+        
+        <div class="checkbox-group">
+            <label class="checkbox-label" id="participante-box">
+                <input type="checkbox" id="chk-participante" required> Participant *
+            </label>
+            <label class="checkbox-label" id="admin-box">
+                <input type="checkbox" id="chk-admin" required> Administrator *
+            </label>
+        </div>
+
+        <button type="submit" class="btn btn-login">Login</button>
+    </form>
+</div>
+
+<div class="container" id="appContainer">
+    <div class="header-app">
+        <h2>Food Preference Control</h2>
+        <div class="user-info">
+            <span id="user-display">User: </span>
+            <button class="btn btn-logout" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <form id="foodForm" onsubmit="event.preventDefault();">
+        <div class="table-wrapper">
+            <table id="participantsTable">
+                <thead>
+                    <tr>
+                        <th>Participant Name</th>
+                        <th>Breakfast</th>
+                        <th>Lunch</th>
+                        <th>Dinner</th>
+                        <th>Diet Type</th>
+                        <th>Protein</th>
+                        <th>Main Base</th>
+                        <th>Spice Level</th>
+                        <th>Seafood/Fish</th>
+                        <th>Restrictions/Allergies</th>
+                        <th class="col-accion admin-only">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
+        </div>
+
+        <div class="btn-container">
+            <div>
+                <button type="button" class="btn btn-add" id="btnGuardar" onclick="ejecutarGuardado()" disabled>Save Changes</button>
+                <button type="button" class="btn btn-edit" id="btnEditar" onclick="habilitarModoEdicion()">✏️ Edit Fields</button>
+                <button type="button" class="btn btn-add admin-only" id="btnAdminAdd" onclick="agregarFilaManualAdmin()" style="background-color: #3b82f6;">+ Add Participant</button>
+            </div>
+            <div class="right-buttons">
+                <button type="button" class="btn btn-clear admin-only" id="btnClear" onclick="limpiarBaseDatos()">Clear All</button>
+                <button type="button" class="btn btn-excel admin-only" id="btnExcel" onclick="exportarExcel()">📊 Export to Excel</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    let contadorFilas = 0;
+    let usuarioLogueado = null;
+    let esAdmin = false;
+    let cambiosSinGuardar = false;
+
+    function verificarAdminUser(val) {
+        const adminBox = document.getElementById("admin-box");
+        const participanteBox = document.getElementById("participante-box");
+        const chkParticipante = document.getElementById("chk-participante");
+        const chkAdmin = document.getElementById("chk-admin");
+
+        if (val.trim() === "miguel_admin") {
+            participanteBox.style.display = "none";
+            chkParticipante.required = false;
+            chkParticipante.checked = false;
+            adminBox.style.display = "flex";
+            chkAdmin.required = true;
+        } else {
+            participanteBox.style.display = "flex";
+            chkParticipante.required = true;
+            adminBox.style.display = "none";
+            chkAdmin.required = false;
+            chkAdmin.checked = false;
+        }
+    }
+
+    function procesarLogin(event) {
+        event.preventDefault();
+        const user = document.getElementById("username").value.trim();
+        const chkAdmin = document.getElementById("chk-admin").checked;
+
+        usuarioLogueado = user;
+        esAdmin = (user === "miguel_admin" && chkAdmin);
+
+        document.getElementById("loginCard").style.display = "none";
+        document.getElementById("appContainer").style.display = "block";
+        document.getElementById("user-display").innerText = `User: ${user} (${esAdmin ? 'Admin' : 'Participant'})`;
+
+        inicializarInterfaz();
+    }
+
+    function inicializarInterfaz() {
+        const elementosAdmin = document.querySelectorAll(".admin-only");
+        elementosAdmin.forEach(el => {
+            el.style.display = esAdmin ? "inline-block" : "none";
+            if(el.tagName === "TH" || el.tagName === "TD") {
+                el.style.display = esAdmin ? "table-cell" : "none";
+            }
+        });
+
+        const btnGuardar = document.getElementById("btnGuardar");
+        btnGuardar.innerText = esAdmin ? "Save Changes" : "Save My Info";
+
+        cargarDatosDeLocalStorage();
+
+        if (!esAdmin) {
+            const datos = obtenerDatosBD();
+            const yaRegistrado = datos.some(p => p.nombre.toLowerCase() === usuarioLogueado.toLowerCase());
+            
+            if (yaRegistrado) {
+                bloquearCamposFila(true);
+                document.getElementById("btnEditar").style.display = "inline-block";
+                btnGuardar.style.display = "none";
+                cambiosSinGuardar = false;
+            } else {
+                const tbody = document.querySelector("#participantsTable tbody");
+                if(tbody.children.length === 0) {
+                    contadorFilas++;
+                    crearEstructuraFila(contadorFilas, { nombre: usuarioLogueado }, true);
+                }
+                document.getElementById("btnEditar").style.display = "none";
+                btnGuardar.style.display = "inline-block";
+                btnGuardar.disabled = true;
+            }
+        } else {
+            bloquearCamposFila(false);
+            document.getElementById("btnEditar").style.display = "none";
+            btnGuardar.style.display = "inline-block";
+            btnGuardar.disabled = true;
+        }
+
+        document.getElementById("foodForm").addEventListener("input", marcarCambios);
+        document.getElementById("foodForm").addEventListener("change", marcarCambios);
+    }
+
+    function marcarCambios() {
+        cambiosSinGuardar = true;
+        document.getElementById("btnGuardar").disabled = false;
+    }
+
+    function bloquearCamposFila(bloquear) {
+        const inputs = document.querySelectorAll("#participantsTable tbody input, #participantsTable tbody select");
+        inputs.forEach(input => {
+            if(!esAdmin && input.name.startsWith("nombre_")) {
+                input.disabled = true;
+            } else {
+                input.disabled = bloquear;
+            }
+        });
+    }
+
+    function agregarFilaManualAdmin() {
+        contadorFilas++;
+        crearEstructuraFila(contadorFilas, {}, false);
+        marcarCambios();
+    }
+
+    function ejecutarGuardado() {
+        const inputsNombre = document.querySelectorAll("#participantsTable tbody input[required]");
+        let formularioValido = true;
+        inputsNombre.forEach(input => {
+            if(!input.value.trim()){
+                formularioValido = false;
+                input.reportValidity();
+            }
+        });
+        if(!formularioValido) return;
+
+        const selectsFila = document.querySelectorAll("#participantsTable tbody select");
+        let selectsValidos = true;
+        selectsFila.forEach(select => {
+            if(select.value === "") {
+                selectsValidos = false;
+                select.style.borderColor = "#ef4444";
+                select.focus();
+            } else {
+                select.style.borderColor = "#d1d5db";
+            }
+        });
+
+        if(!selectsValidos) {
+            alert("⚠️ Please select a valid option in all dropdown menus.");
+            return;
+        }
+
+        let nuevosDatosPantalla = recolectarDatosTabla();
+        let baseDatosActual = obtenerDatosBD();
+
+        if (!esAdmin) {
+            let registroParticipante = nuevosDatosPantalla[0]; 
+            let indiceExistente = baseDatosActual.findIndex(p => p.nombre.toLowerCase() === registroParticipante.nombre.toLowerCase());
+            
+            if (indiceExistente !== -1) {
+                baseDatosActual[indiceExistente] = registroParticipante;
+            } else {
+                baseDatosActual.push(registroParticipante);
+            }
+            localStorage.setItem("preferencias_participantes", JSON.stringify(baseDatosActual));
+        } else {
+            localStorage.setItem("preferencias_participantes", JSON.stringify(nuevosDatosPantalla));
+        }
+
+        cambiosSinGuardar = false;
+        alert("Data successfully saved!");
+
+        if (!esAdmin) {
+            bloquearCamposFila(true);
+            document.getElementById("btnGuardar").style.display = "none";
+            document.getElementById("btnEditar").style.display = "inline-block";
+        } else {
+            document.getElementById("btnGuardar").disabled = true;
+        }
+    }
+
+    function habilitarModoEdicion() {
+        bloquearCamposFila(false);
+        document.getElementById("btnEditar").style.display = "none";
+        const btnGuardar = document.getElementById("btnGuardar");
+        btnGuardar.style.display = "inline-block";
+        btnGuardar.disabled = false;
+        cambiosSinGuardar = true;
+    }
+
+    function verificarEstadoGuardado() {
+        if (cambiosSinGuardar) {
+            alert("⚠️ You have unsaved changes. Please click 'Save' to protect the records.");
+            return false;
+        }
+        return true;
+    }
+
+    function crearEstructuraFila(id, datos = {}, bloquearNombre = false) {
+        const tbody = document.querySelector("#participantsTable tbody");
+        const nuevaFila = document.createElement("tr");
+        nuevaFila.setAttribute("data-id", id);
+
+        const nombre = datos.nombre || "";
+        const desayuno = datos.desayuno || "YES";
+        const almuerzo = datos.almuerzo || "YES";
+        const cena = datos.cena || "YES";
+        
+        const dieta = datos.dieta || "";
+        const proteina = datos.proteina || "";
+        const base = datos.base || "";
+        const picante = datos.picante || "";
+        const mariscos = datos.mariscos || "YES";
+        const allergies = datos.alergias || "";
+
+        const inputNombreHtml = (bloquearNombre && !esAdmin) 
+            ? `<td><input type="text" name="nombre_${id}" value="${nombre}" readonly style="background: #f3f4f6; cursor: not-allowed;"></td>`
+            : `<td><input type="text" name="nombre_${id}" value="${nombre}" placeholder="e.g. John Doe" required onchange="validarNombreUnico(this)"></td>`;
+
+        nuevaFila.innerHTML = `
+            ${inputNombreHtml}
+            <td>
+                <div class="radio-group">
+                    <label class="radio-label"><input type="radio" name="desayuno_${id}" value="yes" ${desayuno === 'YES' ? 'checked' : ''}> Yes</label>
+                    <label class="radio-label"><input type="radio" name="desayuno_${id}" value="no" ${desayuno === 'NO' ? 'checked' : ''}> No</label>
+                </div>
+            </td>
+            <td>
+                <div class="radio-group">
+                    <label class="radio-label"><input type="radio" name="almuerzo_${id}" value="yes" ${almuerzo === 'YES' ? 'checked' : ''}> Yes</label>
+                    <label class="radio-label"><input type="radio" name="almuerzo_${id}" value="no" ${almuerzo === 'NO' ? 'checked' : ''}> No</label>
+                </div>
+            </td>
+            <td>
+                <div class="radio-group">
+                    <label class="radio-label"><input type="radio" name="cena_${id}" value="yes" ${cena === 'YES' ? 'checked' : ''}> Yes</label>
+                    <label class="radio-label"><input type="radio" name="cena_${id}" value="no" ${cena === 'NO' ? 'checked' : ''}> No</label>
+                </div>
+            </td>
+            <td>
+                <select name="dieta_${id}" required>
+                    <option value="" ${dieta === '' ? 'selected' : ''}>-- Select --</option>
+                    <option value="Regular Diet" ${dieta === 'Regular Diet' ? 'selected' : ''}>Regular Diet</option>
+                    <option value="Vegetarian" ${dieta === 'Vegetarian' ? 'selected' : ''}>Vegetarian</option>
+                    <option value="Vegan" ${dieta === 'Vegan' ? 'selected' : ''}>Vegan</option>
+                </select>
+            </td>
+            <td>
+                <select name="proteina_${id}" required>
+                    <option value="" ${proteina === '' ? 'selected' : ''}>-- Select --</option>
+                    <option value="Meat" ${proteina === 'Meat' ? 'selected' : ''}>Meat</option>
+                    <option value="None" ${proteina === 'None' ? 'selected' : ''}>None</option>
+                    <option value="Both" ${proteina === 'Both' ? 'selected' : ''}>Both (Meat + Alternative)</option>
+                </select>
+            </td>
+            <td>
+                <select name="base_${id}" required>
+                    <option value="" ${base === '' ? 'selected' : ''}>-- Select --</option>
+                    <option value="Rice" ${base === 'Rice' ? 'selected' : ''}>Rice</option>
+                    <option value="Pasta" ${base === 'Pasta' ? 'selected' : ''}>Pasta</option>
+                    <option value="Bread" ${base === 'Bread' ? 'selected' : ''}>Bread</option>
+                    <option value="Mix of these" ${base === 'Mix of these' ? 'selected' : ''}>Mix of these</option>
+                </select>
+            </td>
+            <td>
+                <select name="picante_${id}" required>
+                    <option value="" ${picante === '' ? 'selected' : ''}>-- Select --</option>
+                    <option value="Not spicy" ${picante === 'Not spicy' ? 'selected' : ''}>Not spicy</option>
+                    <option value="Mildly spicy" ${picante === 'Mildly spicy' ? 'selected' : ''}>Mildly spicy</option>
+                    <option value="Spicy" ${picante === 'Spicy' ? 'selected' : ''}>Spicy</option>
+                </select>
+            </td>
+            <td>
+                <div class="radio-group">
+                    <label class="radio-label"><input type="radio" name="mariscos_${id}" value="yes" ${mariscos === 'YES' ? 'checked' : ''}> Yes</label>
+                    <label class="radio-label"><input type="radio" name="mariscos_${id}" value="no" ${mariscos === 'NO' ? 'checked' : ''}> No</label>
+                </div>
+            </td>
+            <td><input type="text" name="alergias_${id}" value="${allergies}" placeholder="Optional"></td>
+            <td class="col-accion admin-only" style="display: ${esAdmin ? 'table-cell' : 'none'}">
+                <button type="button" class="btn btn-delete" onclick="eliminarFila(this)">Delete</button>
+            </td>
+        `;
+        
+        tbody.appendChild(nuevaFila);
+    }
+
+    function validarNombreUnico(input) {
+        const nombreIngresado = input.value.trim().toLowerCase();
+        if(!nombreIngresado) return;
+
+        const filas = document.querySelectorAll("#participantsTable tbody tr");
+        let coincidencias = 0;
+
+        filas.forEach(f => {
+            const id = f.getAttribute("data-id");
+            const el = document.getElementsByName(`nombre_${id}`)[0];
+            const val = el ? el.value.trim().toLowerCase() : "";
+            if (val === nombreIngresado) coincidencias++;
+        });
+
+        if (coincidencias > 1) {
+            alert(`The participant "${input.value}" already has a record. Duplicate names are not allowed.`);
+            input.value = "";
+            input.focus();
+        }
+    }
+
+    function eliminarFila(boton) {
+        boton.closest("tr").remove();
+        marcarCambios();
+    }
+
+    function recolectarDatosTabla() {
+        const datos = [];
+        const filas = document.querySelectorAll("#participantsTable tbody tr");
+        
+        filas.forEach(fila => {
+            const id = fila.getAttribute("data-id");
+            if (!id) return;
+
+            const nombreInput = document.getElementsByName(`nombre_${id}`)[0];
+            const nombreVal = nombreInput ? nombreInput.value.trim() : "";
+            if(!nombreVal) return;
+
+            const getRadioVal = (name) => {
+                const radios = document.getElementsByName(name);
+                for(let r of radios) { if(r.checked) return r.value; }
+                return "yes";
+            };
+
+            const getSelectVal = (name) => {
+                const sel = document.getElementsByName(name)[0];
+                return sel ? sel.value : "";
+            };
+
+            datos.push({
+                nombre: nombreVal,
+                desayuno: getRadioVal(`desayuno_${id}`).toUpperCase(),
+                almuerzo: getRadioVal(`almuerzo_${id}`).toUpperCase(),
+                cena: getRadioVal(`cena_${id}`).toUpperCase(),
+                dieta: getSelectVal(`dieta_${id}`),
+                proteina: getSelectVal(`proteina_${id}`),
+                base: getSelectVal(`base_${id}`),
+                picante: getSelectVal(`picante_${id}`),
+                mariscos: getRadioVal(`mariscos_${id}`).toUpperCase(),
+                alergias: (document.getElementsByName(`alergias_${id}`)[0]?.value) || ""
+            });
+        });
+        return datos;
+    }
+
+    function obtenerDatosBD() {
+        const datosGuardados = localStorage.getItem("preferencias_participantes");
+        return datosGuardados ? JSON.parse(datosGuardados) : [];
+    }
+
+    function cargarDatosDeLocalStorage() {
+        const datos = obtenerDatosBD();
+        const tbody = document.querySelector("#participantsTable tbody");
+        tbody.innerHTML = ""; 
+
+        contadorFilas = 0;
+
+        if (datos.length > 0) {
+            datos.forEach(participante => {
+                if(!esAdmin && participante.nombre.toLowerCase() !== usuarioLogueado.toLowerCase()) {
+                    return; 
+                }
+                contadorFilas++;
+                crearEstructuraFila(contadorFilas, participante, !esAdmin);
+            });
+        }
+    }
+
+    function limpiarBaseDatos() {
+        if(confirm("Are you sure you want to completely clear ALL participant data?")) {
+            localStorage.setItem("preferencias_participantes", JSON.stringify([]));
+            contadorFilas = 0;
+            cambiosSinGuardar = false;
+            cargarDatosDeLocalStorage();
+        }
+    }
+
+    // MODERN EXCEL EXPORT - CHROME/EXCEL COMPATIBLE WITH TRANSALTED HEADERS
+    function exportarExcel() {
+        if(!verificarEstadoGuardado()) return;
+
+        const datos = recolectarDatosTabla().filter(p => p.nombre.trim() !== "");
+        if (datos.length === 0) {
+            alert("No valid records found to export.");
+            return;
+        }
+
+        let htmlExcel = `
+        <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+        <head>
+        <meta charset="utf-8"/>
+        <style>
+            table {
+                border-collapse: collapse;
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            }
+            th {
+                background-color: #1e1b4b !important;
+                color: #ffffff !important;
+                font-weight: bold;
+                text-align: center;
+                vertical-align: middle;
+                height: 35px;
+                border: 1px solid #4f46e5;
+                font-size: 11pt;
+                white-space: nowrap;
+            }
+            td {
+                vertical-align: middle;
+                height: 28px;
+                border: 1px solid #e2e8f0;
+                font-size: 10pt;
+                color: #334155;
+                text-align: center;
+                white-space: nowrap;
+            }
+            .fila-par {
+                background-color: #ffffff;
+            }
+            .fila-impar {
+                background-color: #f8fafc;
+            }
+            .nombre-col {
+                font-weight: bold;
+                color: #1e293b;
+                text-align: left !important;
+                padding-left: 8px;
+            }
+            .badge-si {
+                background-color: #dcfce7 !important;
+                color: #15803d !important;
+                font-weight: bold;
+            }
+            .badge-no {
+                background-color: #fee2e2 !important;
+                color: #b91c1c !important;
+            }
+        </style>
+        </head>
+        <body>
+        <table>
+            <thead>
+                <tr>
+                    <th>Participant Name</th>
+                    <th>Breakfast</th>
+                    <th>Lunch</th>
+                    <th>Dinner</th>
+                    <th>Diet Type</th>
+                    <th>Protein</th>
+                    <th>Main Base</th>
+                    <th>Spice Level</th>
+                    <th>Seafood/Fish</th>
+                    <th>Restrictions/Allergies</th>
+                </tr>
+            </thead>
+            <tbody>`;
+
+        datos.forEach((p, index) => {
+            const claseFila = (index % 2 === 0) ? 'fila-par' : 'fila-impar';
+            
+            htmlExcel += `
+                <tr class="${claseFila}">
+                    <td class="nombre-col">${p.nombre}</td>
+                    <td class="${p.desayuno === 'YES' ? 'badge-si' : 'badge-no'}">${p.desayuno}</td>
+                    <td class="${p.almuerzo === 'YES' ? 'badge-si' : 'badge-no'}">${p.almuerzo}</td>
+                    <td class="${p.cena === 'YES' ? 'badge-si' : 'badge-no'}">${p.cena}</td>
+                    <td>${p.dieta || 'Not specified'}</td>
+                    <td>${p.proteina || 'Not specified'}</td>
+                    <td>${p.base || 'Not specified'}</td>
+                    <td>${p.picante || 'Not specified'}</td>
+                    <td class="${p.mariscos === 'YES' ? 'badge-si' : 'badge-no'}">${p.mariscos}</td>
+                    <td>${p.alergias || 'None'}</td>
+                </tr>`;
+        });
+
+        htmlExcel += `
+            </tbody>
+        </table>
+        </body>
+        </html>`;
+
+        const blob = new Blob([htmlExcel], { type: "application/vnd.ms-excel;charset=utf-8;" });
+        const link = document.createElement("a");
+        link.setAttribute("href", URL.createObjectURL(blob));
+        link.setAttribute("download", "Food_Preferences_Report.xls");
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    function logout() {
+        if(!verificarEstadoGuardado()) return;
+
+        usuarioLogueado = null;
+        esAdmin = false;
+        cambiosSinGuardar = false;
+        
+        document.getElementById("loginForm").reset();
+        
+        document.getElementById("participante-box").style.display = "flex";
+        document.getElementById("chk-participante").required = true;
+        document.getElementById("admin-box").style.display = "none";
+        document.getElementById("chk-admin").required = false;
+
+        document.getElementById("appContainer").style.display = "none";
+        document.getElementById("loginCard").style.display = "block";
+    }
+</script>
+
+</body>
+</html>
