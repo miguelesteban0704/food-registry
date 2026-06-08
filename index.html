@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Food Registry System</title>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
         :root {
             --primary-color: #4f46e5;
@@ -303,14 +301,48 @@
         .admin-only { display: none; }
 
         @media (max-width: 768px) {
-            body { padding: 10px; }
-            .login-card { padding: 30px 20px; margin-top: 5vh; }
-            .container { padding: 20px 15px; border-radius: 12px; }
-            .header-app { flex-direction: column; align-items: flex-start; gap: 10px; }
-            .user-info { width: 100%; justify-content: space-between; }
-            .btn-container { flex-direction: column; gap: 10px; }
-            .btn-container > div, .right-buttons { display: flex; flex-direction: column; width: 100%; gap: 10px; }
-            .btn { width: 100%; box-sizing: border-box; }
+            body {
+                padding: 10px;
+            }
+
+            .login-card {
+                padding: 30px 20px;
+                margin-top: 5vh;
+            }
+
+            .container {
+                padding: 20px 15px;
+                border-radius: 12px;
+            }
+
+            .header-app {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .user-info {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .btn-container {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .btn-container > div, 
+            .right-buttons {
+                display: flex;
+                flex-direction: column;
+                width: 100%;
+                gap: 10px;
+            }
+
+            .btn {
+                width: 100%;
+                box-sizing: border-box;
+            }
         }
     </style>
 </head>
@@ -318,7 +350,7 @@
 
 <div class="login-card" id="loginCard">
     <h3>Sign In</h3>
-    <form id="loginForm" onsubmit="procesarLogin(event)">
+    <form id="loginForm">
         <div class="input-group">
             <label for="username">Participant Name</label>
             <input type="text" id="username" placeholder="Type your name here..." required oninput="verificarAdminUser(this.value)">
@@ -326,14 +358,14 @@
         
         <div class="checkbox-group">
             <label class="checkbox-label" id="participante-box">
-                <input type="checkbox" id="chk-participante" required> Participant *
+                <input type="checkbox" id="chk-participante"> Participant *
             </label>
             <label class="checkbox-label" id="admin-box">
-                <input type="checkbox" id="chk-admin" required> Administrator *
+                <input type="checkbox" id="chk-admin"> Administrator *
             </label>
         </div>
 
-        <button type="submit" class="btn btn-login">Login</button>
+        <button type="button" class="btn btn-login" onclick="procesarLogin(event)">Login</button>
     </form>
 </div>
 
@@ -383,19 +415,18 @@
     </form>
 </div>
 
-<script>
-    // Configuración automática de Firebase en la nube (Base de datos real compartida)
-    const firebaseConfig = {
-        databaseURL: "https://food-registry-88c9f-default-rtdb.firebaseio.com/"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const database = firebase.database();
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
+<script>
+    const firebaseConfig = { databaseURL: "https://foodregistry-f3ca5-default-rtdb.firebaseio.com/" };
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
     let contadorFilas = 0;
     let usuarioLogueado = null;
     let esAdmin = false;
     let cambiosSinGuardar = false;
-    let datosGlobalesFirebase = []; // Almacén en tiempo real
 
     function verificarAdminUser(val) {
         const adminBox = document.getElementById("admin-box");
@@ -425,59 +456,56 @@
 
         usuarioLogueado = user;
         esAdmin = (user === "miguel_admin" && chkAdmin);
-
         document.getElementById("loginCard").style.display = "none";
         document.getElementById("appContainer").style.display = "block";
-        document.getElementById("user-display").innerText = `User: ${user} (${esAdmin ? 'Admin' : 'Participant'})`;
+        document.getElementById("user-display").innerText = `Usuario: ${user} (${esAdmin ? 'Admin' : 'Participante'})`;
 
-        // Descargar datos reales desde internet antes de estructurar la interfaz
-        database.ref("preferencias").once("value", (snapshot) => {
-            datosGlobalesFirebase = snapshot.val() || [];
-            inicializarInterfaz();
+        inicializarInterfaz();
+    }
+
+    function limpiarBaseDatos() {
+    if(confirm("Are you sure you want to completely clear ALL participant data?")) {
+        // En lugar de borrar localmente y esperar, enviamos el array vacío a la nube
+        database.ref("preferencias").set([], (error) => {
+            if (error) {
+                alert("Error clearing data: " + error.message);
+            } else {
+                // Al limpiar Firebase, el evento .on('value') disparará automáticamente 
+                // la actualización de la tabla.
+                alert("All data cleared successfully.");
+            }
         });
     }
+}
 
     function inicializarInterfaz() {
         const elementosAdmin = document.querySelectorAll(".admin-only");
         elementosAdmin.forEach(el => {
             el.style.display = esAdmin ? "inline-block" : "none";
-            if(el.tagName === "TH" || el.tagName === "TD") {
+            if (el.tagName === "TH" || el.tagName === "TD") {
                 el.style.display = esAdmin ? "table-cell" : "none";
             }
         });
-
-        const btnGuardar = document.getElementById("btnGuardar");
-        btnGuardar.innerText = esAdmin ? "Save Changes" : "Save My Info";
-
-        renderizarTablaDesdeDatos();
-
+        document.getElementById("btnGuardar").innerText = esAdmin ? "Save Data" : "Save Data";
+        
+        cargarDatosDeLocalStorage();
+        
         if (!esAdmin) {
-            const yaRegistrado = datosGlobalesFirebase.some(p => p.nombre.toLowerCase() === usuarioLogueado.toLowerCase());
-            
+            const datos = obtenerDatosBD();
+            const yaRegistrado = datos.some(p => p.nombre.toLowerCase() === usuarioLogueado.toLowerCase());
             if (yaRegistrado) {
                 bloquearCamposFila(true);
                 document.getElementById("btnEditar").style.display = "inline-block";
-                btnGuardar.style.display = "none";
-                cambiosSinGuardar = false;
+                document.getElementById("btnGuardar").style.display = "none";
             } else {
                 const tbody = document.querySelector("#participantsTable tbody");
                 if(tbody.children.length === 0) {
-                    contadorFilas++;
-                    crearEstructuraFila(contadorFilas, { nombre: usuarioLogueado }, true);
+                    crearEstructuraFila(1, { nombre: usuarioLogueado }, true);
                 }
-                document.getElementById("btnEditar").style.display = "none";
-                btnGuardar.style.display = "inline-block";
-                btnGuardar.disabled = true;
+                document.getElementById("btnGuardar").disabled = true;
             }
-        } else {
-            bloquearCamposFila(false);
-            document.getElementById("btnEditar").style.display = "none";
-            btnGuardar.style.display = "inline-block";
-            btnGuardar.disabled = true;
         }
-
         document.getElementById("foodForm").addEventListener("input", marcarCambios);
-        document.getElementById("foodForm").addEventListener("change", marcarCambios);
     }
 
     function marcarCambios() {
@@ -486,360 +514,214 @@
     }
 
     function bloquearCamposFila(bloquear) {
-        const inputs = document.querySelectorAll("#participantsTable tbody input, #participantsTable tbody select");
-        inputs.forEach(input => {
-            if(!esAdmin && input.name.startsWith("nombre_")) {
-                input.disabled = true;
-            } else {
-                input.disabled = bloquear;
-            }
+        document.querySelectorAll("#participantsTable tbody input, #participantsTable tbody select").forEach(input => {
+            if (!esAdmin && input.name.startsWith("nombre_")) input.disabled = true;
+            else input.disabled = bloquear;
         });
     }
 
     function agregarFilaManualAdmin() {
         contadorFilas++;
-        crearEstructuraFila(contadorFilas, {}, false);
+        crearEstructuraFila(Date.now(), {}, false);
         marcarCambios();
     }
 
     function ejecutarGuardado() {
-        const inputsNombre = document.querySelectorAll("#participantsTable tbody input[required]");
-        let formularioValido = true;
-        inputsNombre.forEach(input => {
-            if(!input.value.trim()){
-                formularioValido = false;
-                input.reportValidity();
-            }
-        });
-        if(!formularioValido) return;
+    
+    let nuevosDatos = recolectarDatosTabla();
+    let baseDatosActual = obtenerDatosBD();
 
-        const selectsFila = document.querySelectorAll("#participantsTable tbody select");
-        let selectsValidos = true;
-        selectsFila.forEach(select => {
-            if(select.value === "") {
-                selectsValidos = false;
-                select.style.borderColor = "#ef4444";
-                select.focus();
-            } else {
-                select.style.borderColor = "#d1d5db";
-            }
-        });
-
-        if(!selectsValidos) {
-            alert("⚠️ Please select a valid option in all dropdown menus.");
-            return;
-        }
-
-        let nuevosDatosPantalla = recolectarDatosTabla();
-
-        // GUARDADO REAL EN LA NUBE (Sincroniza todos los dispositivos)
-        if (!esAdmin) {
-            let registroParticipante = nuevosDatosPantalla[0]; 
-            let indiceExistente = datosGlobalesFirebase.findIndex(p => p.nombre.toLowerCase() === registroParticipante.nombre.toLowerCase());
-            
-            if (indiceExistente !== -1) {
-                datosGlobalesFirebase[indiceExistente] = registroParticipante;
-            } else {
-                datosGlobalesFirebase.push(registroParticipante);
-            }
-            database.ref("preferencias").set(datosGlobalesFirebase);
-        } else {
-            database.ref("preferencias").set(nuevosDatosPantalla);
-        }
-
-        cambiosSinGuardar = false;
-        alert("Data successfully saved across internet!");
-
-        if (!esAdmin) {
-            bloquearCamposFila(true);
-            document.getElementById("btnGuardar").style.display = "none";
-            document.getElementById("btnEditar").style.display = "inline-block";
-        } else {
-            document.getElementById("btnGuardar").disabled = true;
-        }
+    // Lógica para actualizar el array
+    if (!esAdmin) {
+        let registroParticipante = nuevosDatos[0];
+        let index = baseDatosActual.findIndex(p => p.nombre.toLowerCase() === usuarioLogueado.toLowerCase());
+        if (index !== -1) baseDatosActual[index] = registroParticipante;
+        else baseDatosActual.push(registroParticipante);
+    } else {
+        baseDatosActual = nuevosDatos;
     }
+
+    // 1. Guardar en LocalStorage
+    localStorage.setItem("preferencias_participantes", JSON.stringify(baseDatosActual));
+
+    // 2. Sincronizar con Firebase
+    database.ref("preferencias").set(baseDatosActual)
+    .then(() => {
+        alert("¡Guardado correctamente en la nube!");
+        cambiosSinGuardar = false;
+        // NO recargues la página aquí para no perder el estado
+        inicializarInterfaz();
+    })
+    .catch((error) => {
+        alert("Error al guardar: " + error.message);
+    });
+}
 
     function habilitarModoEdicion() {
         bloquearCamposFila(false);
         document.getElementById("btnEditar").style.display = "none";
-        const btnGuardar = document.getElementById("btnGuardar");
-        btnGuardar.style.display = "inline-block";
-        btnGuardar.disabled = false;
-        cambiosSinGuardar = true;
+        document.getElementById("btnGuardar").style.display = "inline-block";
+        document.getElementById("btnGuardar").disabled = false;
     }
 
-    function verificarEstadoGuardado() {
-        if (cambiosSinGuardar) {
-            alert("⚠️ You have unsaved changes. Please click 'Save' to protect the records.");
-            return false;
-        }
-        return true;
-    }
-
-    function crearEstructuraFila(id, datos = {}, bloquearNombre = false) {
+    function crearEstructuraFila(id, datos, bloquearNombre) {
         const tbody = document.querySelector("#participantsTable tbody");
-        const nuevaFila = document.createElement("tr");
-        nuevaFila.setAttribute("data-id", id);
-
-        const nombre = datos.nombre || "";
-        const desayuno = datos.desayuno || "YES";
-        const almuerzo = datos.almuerzo || "YES";
-        const cena = datos.cena || "YES";
-        
-        const dieta = datos.dieta || "";
-        const proteina = datos.proteina || "";
-        const base = datos.base || "";
-        const picante = datos.picante || "";
-        const mariscos = datos.mariscos || "YES";
-        const allergies = datos.alergias || "";
-
-        const inputNombreHtml = (bloquearNombre && !esAdmin) 
-            ? `<td><input type="text" name="nombre_${id}" value="${nombre}" readonly style="background: #f3f4f6; cursor: not-allowed;"></td>`
-            : `<td><input type="text" name="nombre_${id}" value="${nombre}" placeholder="e.g. John Doe" required onchange="validarNombreUnico(this)"></td>`;
-
-        nuevaFila.innerHTML = `
-            ${inputNombreHtml}
-            <td>
-                <div class="radio-group">
-                    <label class="radio-label"><input type="radio" name="desayuno_${id}" value="yes" ${desayuno === 'YES' ? 'checked' : ''}> Yes</label>
-                    <label class="radio-label"><input type="radio" name="desayuno_${id}" value="no" ${desayuno === 'NO' ? 'checked' : ''}> No</label>
-                </div>
-            </td>
-            <td>
-                <div class="radio-group">
-                    <label class="radio-label"><input type="radio" name="almuerzo_${id}" value="yes" ${almuerzo === 'YES' ? 'checked' : ''}> Yes</label>
-                    <label class="radio-label"><input type="radio" name="almuerzo_${id}" value="no" ${almuerzo === 'NO' ? 'checked' : ''}> No</label>
-                </div>
-            </td>
-            <td>
-                <div class="radio-group">
-                    <label class="radio-label"><input type="radio" name="cena_${id}" value="yes" ${cena === 'YES' ? 'checked' : ''}> Yes</label>
-                    <label class="radio-label"><input type="radio" name="cena_${id}" value="no" ${cena === 'NO' ? 'checked' : ''}> No</label>
-                </div>
-            </td>
-            <td>
-                <select name="dieta_${id}" required>
-                    <option value="" ${dieta === '' ? 'selected' : ''}>-- Select --</option>
-                    <option value="Regular Diet" ${dieta === 'Regular Diet' ? 'selected' : ''}>Regular Diet</option>
-                    <option value="Vegetarian" ${dieta === 'Vegetarian' ? 'selected' : ''}>Vegetarian</option>
-                    <option value="Vegan" ${dieta === 'Vegan' ? 'selected' : ''}>Vegan</option>
-                </select>
-            </td>
-            <td>
-                <select name="proteina_${id}" required>
-                    <option value="" ${proteina === '' ? 'selected' : ''}>-- Select --</option>
-                    <option value="Meat" ${proteina === 'Meat' ? 'selected' : ''}>Meat</option>
-                    <option value="None" ${proteina === 'None' ? 'selected' : ''}>None</option>
-                    <option value="Both" ${proteina === 'Both' ? 'selected' : ''}>Both (Meat + Alternative)</option>
-                </select>
-            </td>
-            <td>
-                <select name="base_${id}" required>
-                    <option value="" ${base === '' ? 'selected' : ''}>-- Select --</option>
-                    <option value="Rice" ${base === 'Rice' ? 'selected' : ''}>Rice</option>
-                    <option value="Pasta" ${base === 'Pasta' ? 'selected' : ''}>Pasta</option>
-                    <option value="Bread" ${base === 'Bread' ? 'selected' : ''}>Bread</option>
-                    <option value="Mix of these" ${base === 'Mix of these' ? 'selected' : ''}>Mix of these</option>
-                </select>
-            </td>
-            <td>
-                <select name="picante_${id}" required>
-                    <option value="" ${picante === '' ? 'selected' : ''}>-- Select --</option>
-                    <option value="Not spicy" ${picante === 'Not spicy' ? 'selected' : ''}>Not spicy</option>
-                    <option value="Mildly spicy" ${picante === 'Mildly spicy' ? 'selected' : ''}>Mildly spicy</option>
-                    <option value="Spicy" ${picante === 'Spicy' ? 'selected' : ''}>Spicy</option>
-                </select>
-            </td>
-            <td>
-                <div class="radio-group">
-                    <label class="radio-label"><input type="radio" name="mariscos_${id}" value="yes" ${mariscos === 'YES' ? 'checked' : ''}> Yes</label>
-                    <label class="radio-label"><input type="radio" name="mariscos_${id}" value="no" ${mariscos === 'NO' ? 'checked' : ''}> No</label>
-                </div>
-            </td>
-            <td><input type="text" name="alergias_${id}" value="${allergies}" placeholder="Optional"></td>
-            <td class="col-accion admin-only" style="display: ${esAdmin ? 'table-cell' : 'none'}">
-                <button type="button" class="btn btn-delete" onclick="eliminarFila(this)">Delete</button>
-            </td>
+        const row = document.createElement("tr");
+        row.setAttribute("data-id", id);
+        row.innerHTML = `
+            <td><input type="text" name="nombre_${id}" value="${datos.nombre || ''}" ${bloquearNombre ? 'readonly' : 'required'}></td>
+            <td><div class="radio-group"><label><input type="radio" name="desayuno_${id}" value="Yes" ${datos.desayuno!=='NO'?'checked':''}> Yes</label><label><input type="radio" name="desayuno_${id}" value="NO" ${datos.desayuno==='NO'?'checked':''}> No</label></div></td>
+            <td><div class="radio-group"><label><input type="radio" name="almuerzo_${id}" value="Yes" ${datos.almuerzo!=='NO'?'checked':''}> Yes</label><label><input type="radio" name="almuerzo_${id}" value="NO" ${datos.almuerzo==='NO'?'checked':''}> No</label></div></td>
+            <td><div class="radio-group"><label><input type="radio" name="cena_${id}" value="Yes" ${datos.cena!=='NO'?'checked':''}> Yes</label><label><input type="radio" name="cena_${id}" value="NO" ${datos.cena==='NO'?'checked':''}> No</label></div></td>
+            <td><select name="dieta_${id}" required><option value="Omnivore" ${datos.dieta==='Omnivore'?'selected':''}>Omnivore</option><option value="Vegetarian" ${datos.dieta==='Vegetarian'?'selected':''}>Vegetarian</option><option value="Vegan" ${datos.dieta==='Vegan'?'selected':''}>Vegan</option></select></td>
+            <td><select name="proteina_${id}" required><option value="Meat" ${datos.proteina==='Meat'?'selected':''}>Meat</option><option value="None" ${datos.proteina==='None'?'selected':''}>None</option></td>
+            <td><select name="base_${id}" required><option value="Rice" ${datos.base==='Rice'?'selected':''}>Rice</option><option value="Pasta" ${datos.base==='Pasta'?'selected':''}>Pasta</option><option value="Bread" ${datos.base==='Bread'?'selected':''}>Bread</option></select></td>
+            <td><select name="picante_${id}" required><option value="No Spicy" ${datos.picante==='No Spicy'?'selected':''}>No Spicy</option><option value="Spicy" ${datos.picante==='Spicy'?'selected':''}>Spicy</option></select></td>
+            <td><div class="radio-group"><label><input type="radio" name="mariscos_${id}" value="Yes" ${datos.mariscos!=='NO'?'checked':''}> Yes</label><label><input type="radio" name="mariscos_${id}" value="NO" ${datos.mariscos==='NO'?'checked':''}> No</label></div></td>
+            <td><input type="text" name="alergias_${id}" value="${datos.alergias || ''}"></td>
+            <td class="admin-only" style="display:${esAdmin?'table-cell':'none'}"><button class="btn btn-delete" onclick="eliminarFila(this)">Delete</button></td>
         `;
-        
-        tbody.appendChild(nuevaFila);
-    }
-
-    function validarNombreUnico(input) {
-        const nombreIngresado = input.value.trim().toLowerCase();
-        if(!nombreIngresado) return;
-
-        const filas = document.querySelectorAll("#participantsTable tbody tr");
-        let coincidencias = 0;
-
-        filas.forEach(f => {
-            const id = f.getAttribute("data-id");
-            const el = document.getElementsByName(`nombre_${id}`)[0];
-            const val = el ? el.value.trim().toLowerCase() : "";
-            if (val === nombreIngresado) coincidencias++;
-        });
-
-        if (coincidencias > 1) {
-            alert(`The participant "${input.value}" already has a record. Duplicate names are not allowed.`);
-            input.value = "";
-            input.focus();
-        }
+        tbody.appendChild(row);
     }
 
     function eliminarFila(boton) {
-        boton.closest("tr").remove();
-        marcarCambios();
-    }
+    // Eliminamos la fila de la interfaz
+    boton.closest("tr").remove();
+    
+    // Recolectamos los datos que quedaron en la tabla
+    let datosRestantes = recolectarDatosTabla();
+    
+    // Guardamos el nuevo estado (sin la fila eliminada) en Firebase
+    database.ref("preferencias").set(datosRestantes, (error) => {
+        if (error) {
+            alert("Error updating data: " + error.message);
+        } else {
+            // Actualizamos el respaldo local
+            localStorage.setItem("preferencias_participantes", JSON.stringify(datosRestantes));
+            console.log("Fila eliminada y base de datos sincronizada.");
+        }
+    });
+}
 
     function recolectarDatosTabla() {
         const datos = [];
-        const filas = document.querySelectorAll("#participantsTable tbody tr");
-        
-        filas.forEach(fila => {
-            const id = fila.getAttribute("data-id");
-            if (!id) return;
-
-            const nombreInput = document.getElementsByName(`nombre_${id}`)[0];
-            const nombreVal = nombreInput ? nombreInput.value.trim() : "";
-            if(!nombreVal) return;
-
-            const getRadioVal = (name) => {
-                const radios = document.getElementsByName(name);
-                for(let r of radios) { if(r.checked) return r.value; }
-                return "yes";
-            };
-
-            const getSelectVal = (name) => {
-                const sel = document.getElementsByName(name)[0];
-                return sel ? sel.value : "";
-            };
-
+        document.querySelectorAll("#participantsTable tbody tr").forEach(row => {
+            const id = row.getAttribute("data-id");
             datos.push({
-                nombre: nombreVal,
-                desayuno: getRadioVal(`desayuno_${id}`).toUpperCase(),
-                almuerzo: getRadioVal(`almuerzo_${id}`).toUpperCase(),
-                cena: getRadioVal(`cena_${id}`).toUpperCase(),
-                dieta: getSelectVal(`dieta_${id}`),
-                proteina: getSelectVal(`proteina_${id}`),
-                base: getSelectVal(`base_${id}`),
-                picante: getSelectVal(`picante_${id}`),
-                mariscos: getRadioVal(`mariscos_${id}`).toUpperCase(),
-                alergias: (document.getElementsByName(`alergias_${id}`)[0]?.value) || ""
+                nombre: row.querySelector(`[name="nombre_${id}"]`).value,
+                desayuno: row.querySelector(`[name="desayuno_${id}"]:checked`).value,
+                almuerzo: row.querySelector(`[name="almuerzo_${id}"]:checked`).value,
+                cena: row.querySelector(`[name="cena_${id}"]:checked`).value,
+                dieta: row.querySelector(`[name="dieta_${id}"]`).value,
+                proteina: row.querySelector(`[name="proteina_${id}"]`).value,
+                base: row.querySelector(`[name="base_${id}"]`).value,
+                picante: row.querySelector(`[name="picante_${id}"]`).value,
+                mariscos: row.querySelector(`[name="mariscos_${id}"]:checked`).value,
+                alergias: row.querySelector(`[name="alergias_${id}"]`).value
             });
         });
         return datos;
     }
 
-    function renderizarTablaDesdeDatos() {
+    function obtenerDatosBD() {
+        return JSON.parse(localStorage.getItem("preferencias_participantes") || "[]");
+    }
+
+    function cargarDatosDeLocalStorage() {
+        const datos = obtenerDatosBD();
         const tbody = document.querySelector("#participantsTable tbody");
-        tbody.innerHTML = ""; 
-        contadorFilas = 0;
-
-        if (datosGlobalesFirebase.length > 0) {
-            datosGlobalesFirebase.forEach(participante => {
-                if(!esAdmin && participante.nombre.toLowerCase() !== usuarioLogueado.toLowerCase()) {
-                    return; 
-                }
-                contadorFilas++;
-                crearEstructuraFila(contadorFilas, participante, !esAdmin);
-            });
-        }
+        tbody.innerHTML = "";
+        datos.forEach(p => {
+            if (esAdmin || p.nombre.toLowerCase() === usuarioLogueado.toLowerCase()) {
+                crearEstructuraFila(Date.now() + Math.random(), p, !esAdmin);
+            }
+        });
     }
 
-    function limpiarBaseDatos() {
-        if(confirm("Are you sure you want to completely clear ALL participant data from the Cloud?")) {
-            database.ref("preferencias").set([]);
-            datosGlobalesFirebase = [];
-            contadorFilas = 0;
-            cambiosSinGuardar = false;
-            renderizarTablaDesdeDatos();
-        }
+    function logout() {
+        location.reload();
     }
+
+    // Asegúrate de que esta función esté definida antes o después de exportarExcel
+function verificarEstadoGuardado() {
+    if (cambiosSinGuardar) {
+        alert("⚠️ You have unsaved changes. Please click 'Save' to protect the records.");
+        return false;
+    }
+    return true;
+}
 
     function exportarExcel() {
-        if(!verificarEstadoGuardado()) return;
+    if (!verificarEstadoGuardado()) return;
+    const datos = recolectarDatosTabla().filter(p => p.nombre.trim() !== "");
+    if (datos.length === 0) {
+        alert("No records to export.");
+        return;
+    }
 
-        const datos = recolectarDatosTabla().filter(p => p.nombre.trim() !== "");
-        if (datos.length === 0) {
-            alert("No valid records found to export.");
-            return;
-        }
-
-        let htmlExcel = `
-        <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
-        <head>
+    const headers = ["PARTICIPANT NAME", "BREAKFAST", "LUNCH", "DINNER", "DIET TYPE", "PROTEIN", "MAIN BASE", "SPICE LEVEL", "SEAFOOD/FISH", "RESTRICTIONS/ALLERGIES"];
+    
+    // Estilos CSS modernos para Excel
+    let html = `
+    <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+    <head>
         <meta charset="utf-8"/>
         <style>
             table { border-collapse: collapse; font-family: 'Segoe UI', sans-serif; }
-            th { background-color: #1e1b4b !important; color: #ffffff !important; font-weight: bold; text-align: center; height: 35px; border: 1px solid #4f46e5; font-size: 11pt; white-space: nowrap; }
-            td { vertical-align: middle; height: 28px; border: 1px solid #e2e8f0; font-size: 10pt; color: #334155; text-align: center; white-space: nowrap; }
-            .fila-par { background-color: #ffffff; }
-            .fila-impar { background-color: #f8fafc; }
-            .nombre-col { font-weight: bold; color: #1e293b; text-align: left !important; padding-left: 8px; }
-            .badge-si { background-color: #dcfce7 !important; color: #15803d !important; font-weight: bold; }
-            .badge-no { background-color: #fee2e2 !important; color: #b91c1c !important; }
+            th { 
+                background-color: #1e1b4b !important; 
+                color: #ffffff !important; 
+                font-weight: bold; 
+                padding: 12px; 
+                text-align: center; 
+                border: 1px solid #4338ca;
+            }
+            td { 
+                padding: 10px; 
+                border: 1px solid #e5e7eb; 
+                text-align: center; 
+                color: #374151; 
+            }
+            .alt-row { background-color: #f9fafb; }
         </style>
-        </head>
-        <body>
-        <table>
+    </head>
+    <body>
+        <table border="1">
             <thead>
                 <tr>
-                    <th>Participant Name</th>
-                    <th>Breakfast</th>
-                    <th>Lunch</th>
-                    <th>Dinner</th>
-                    <th>Diet Type</th>
-                    <th>Protein</th>
-                    <th>Main Base</th>
-                    <th>Spice Level</th>
-                    <th>Seafood/Fish</th>
-                    <th>Restrictions/Allergies</th>
+                    ${headers.map(h => `<th>${h}</th>`).join('')}
                 </tr>
             </thead>
             <tbody>`;
 
-        datos.forEach((p, index) => {
-            const claseFila = (index % 2 === 0) ? 'fila-par' : 'fila-impar';
-            htmlExcel += `
-                <tr class="${claseFila}">
-                    <td class="nombre-col">${p.nombre}</td>
-                    <td class="${p.desayuno === 'YES' ? 'badge-si' : 'badge-no'}">${p.desayuno}</td>
-                    <td class="${p.almuerzo === 'YES' ? 'badge-si' : 'badge-no'}">${p.almuerzo}</td>
-                    <td class="${p.cena === 'YES' ? 'badge-si' : 'badge-no'}">${p.cena}</td>
-                    <td>${p.dieta || 'Not specified'}</td>
-                    <td>${p.proteina || 'Not specified'}</td>
-                    <td>${p.base || 'Not specified'}</td>
-                    <td>${p.picante || 'Not specified'}</td>
-                    <td class="${p.mariscos === 'YES' ? 'badge-si' : 'badge-no'}">${p.mariscos}</td>
-                    <td>${p.alergias || 'None'}</td>
-                </tr>`;
-        });
+    datos.forEach((p, index) => {
+        const rowClass = (index % 2 !== 0) ? 'class="alt-row"' : '';
+        html += `<tr ${rowClass}>
+            <td style="font-weight: bold; text-align: left;">${p.nombre}</td>
+            <td>${p.desayuno}</td>
+            <td>${p.almuerzo}</td>
+            <td>${p.cena}</td>
+            <td>${p.dieta}</td>
+            <td>${p.proteina}</td>
+            <td>${p.base}</td>
+            <td>${p.picante}</td>
+            <td>${p.mariscos}</td>
+            <td>${p.alergias}</td>
+        </tr>`;
+    });
 
-        htmlExcel += `</tbody></table></body></html>`;
+    html += `</tbody></table></body></html>`;
 
-        const blob = new Blob([htmlExcel], { type: "application/vnd.ms-excel;charset=utf-8;" });
-        const link = document.createElement("a");
-        link.setAttribute("href", URL.createObjectURL(blob));
-        link.setAttribute("download", "Food_Preferences_Report.xls");
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    }
-
-    function logout() {
-        if(!verificarEstadoGuardado()) return;
-        usuarioLogueado = null;
-        esAdmin = false;
-        cambiosSinGuardar = false;
-        document.getElementById("loginForm").reset();
-        document.getElementById("participante-box").style.display = "flex";
-        document.getElementById("chk-participante").required = true;
-        document.getElementById("admin-box").style.display = "none";
-        document.getElementById("chk-admin").required = false;
-        document.getElementById("appContainer").style.display = "none";
-        document.getElementById("loginCard").style.display = "block";
-    }
+    // Descarga infalible
+    const blob = new Blob([html], { type: "application/vnd.ms-excel;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "Food_Preferences_Report.xls";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
 </script>
+
 </body>
 </html>
