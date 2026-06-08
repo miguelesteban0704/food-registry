@@ -344,10 +344,36 @@
                 box-sizing: border-box;
             }
         }
+        /* Estilo para el contenedor de notificaciones */
+#toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+}
+
+.toast {
+    background: white;
+    color: #374151;
+    padding: 16px 24px;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    animation: slideIn 0.3s ease-out;
+    border-left: 5px solid var(--primary-color);
+}
+
+@keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
     </style>
 </head>
 <body>
-
+<div id="toast-container"></div>
 <div class="login-card" id="loginCard">
     <h3>Sign In</h3>
     <form id="loginForm">
@@ -420,6 +446,21 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
 <script>
+    function mostrarNotificacion(mensaje, tipo = 'success') {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.style.borderLeftColor = tipo === 'error' ? '#ef4444' : '#10b981';
+    toast.innerHTML = `<span>${mensaje}</span>`;
+    
+    container.appendChild(toast);
+    
+    // Auto-eliminar después de 3 segundos
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
     const firebaseConfig = { databaseURL: "https://foodregistry-f3ca5-default-rtdb.firebaseio.com/" };
     if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
@@ -464,15 +505,12 @@
     }
 
     function limpiarBaseDatos() {
-    if(confirm("Are you sure you want to completely clear ALL participant data?")) {
-        // En lugar de borrar localmente y esperar, enviamos el array vacío a la nube
+    if (confirm("Are you sure you want to completely clear ALL participant data?")) {
         database.ref("preferencias").set([], (error) => {
             if (error) {
-                alert("Error clearing data: " + error.message);
+                mostrarNotificacion("Error clearing data: " + error.message, "error");
             } else {
-                // Al limpiar Firebase, el evento .on('value') disparará automáticamente 
-                // la actualización de la tabla.
-                alert("All data cleared successfully.");
+                mostrarNotificacion("All data cleared successfully.");
             }
         });
     }
@@ -548,8 +586,11 @@
         }
 
         database.ref("preferencias").set(baseDatosActual).then(() => {
-            alert("¡Sincronizado con la nube!");
+            mostrarNotificacion("Changes saved successfully to the cloud!");
+            cambiosSinGuardar = false; // Resetear el estado de cambios
             inicializarInterfaz();
+        }).catch((error) => {
+            mostrarNotificacion("Error saving: " + error.message, "error");
         });
     });
 }
@@ -582,14 +623,15 @@
     }
 
     function eliminarFila(boton) {
-    if(!confirm("¿Eliminar este registro?")) return;
+    if(!confirm("Are you sure you want to delete this record?")) return;
     
     boton.closest("tr").remove();
     let datosRestantes = recolectarDatosTabla();
     
-    // Sobrescribir con los datos limpios
     database.ref("preferencias").set(datosRestantes).then(() => {
-        alert("Fila eliminada y base de datos actualizada.");
+        mostrarNotificacion("Row deleted successfully."); // <-- Notificación moderna
+    }).catch((error) => {
+        mostrarNotificacion("Error: " + error.message, "error"); // <-- Notificación de error
     });
 }
 
@@ -633,9 +675,10 @@
     }
 
     // Asegúrate de que esta función esté definida antes o después de exportarExcel
+// Función para verificar si hay cambios sin guardar
 function verificarEstadoGuardado() {
     if (cambiosSinGuardar) {
-        alert("⚠️ You have unsaved changes. Please click 'Save' to protect the records.");
+        mostrarNotificacion("⚠️ You have unsaved changes. Please click 'Save Changes' to protect the records.", "error");
         return false;
     }
     return true;
@@ -645,7 +688,8 @@ function verificarEstadoGuardado() {
     if (!verificarEstadoGuardado()) return;
     const datos = recolectarDatosTabla().filter(p => p.nombre.trim() !== "");
     if (datos.length === 0) {
-        alert("No records to export.");
+        // Notificación moderna en lugar de alert
+        mostrarNotificacion("No records to export.", "error");
         return;
     }
 
