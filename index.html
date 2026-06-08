@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Food Registry System</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
         :root {
             --primary-color: #4f46e5;
@@ -301,48 +303,14 @@
         .admin-only { display: none; }
 
         @media (max-width: 768px) {
-            body {
-                padding: 10px;
-            }
-
-            .login-card {
-                padding: 30px 20px;
-                margin-top: 5vh;
-            }
-
-            .container {
-                padding: 20px 15px;
-                border-radius: 12px;
-            }
-
-            .header-app {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 10px;
-            }
-
-            .user-info {
-                width: 100%;
-                justify-content: space-between;
-            }
-
-            .btn-container {
-                flex-direction: column;
-                gap: 10px;
-            }
-
-            .btn-container > div, 
-            .right-buttons {
-                display: flex;
-                flex-direction: column;
-                width: 100%;
-                gap: 10px;
-            }
-
-            .btn {
-                width: 100%;
-                box-sizing: border-box;
-            }
+            body { padding: 10px; }
+            .login-card { padding: 30px 20px; margin-top: 5vh; }
+            .container { padding: 20px 15px; border-radius: 12px; }
+            .header-app { flex-direction: column; align-items: flex-start; gap: 10px; }
+            .user-info { width: 100%; justify-content: space-between; }
+            .btn-container { flex-direction: column; gap: 10px; }
+            .btn-container > div, .right-buttons { display: flex; flex-direction: column; width: 100%; gap: 10px; }
+            .btn { width: 100%; box-sizing: border-box; }
         }
     </style>
 </head>
@@ -416,10 +384,18 @@
 </div>
 
 <script>
+    // Configuración automática de Firebase en la nube (Base de datos real compartida)
+    const firebaseConfig = {
+        databaseURL: "https://food-registry-88c9f-default-rtdb.firebaseio.com/"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+
     let contadorFilas = 0;
     let usuarioLogueado = null;
     let esAdmin = false;
     let cambiosSinGuardar = false;
+    let datosGlobalesFirebase = []; // Almacén en tiempo real
 
     function verificarAdminUser(val) {
         const adminBox = document.getElementById("admin-box");
@@ -454,7 +430,11 @@
         document.getElementById("appContainer").style.display = "block";
         document.getElementById("user-display").innerText = `User: ${user} (${esAdmin ? 'Admin' : 'Participant'})`;
 
-        inicializarInterfaz();
+        // Descargar datos reales desde internet antes de estructurar la interfaz
+        database.ref("preferencias").once("value", (snapshot) => {
+            datosGlobalesFirebase = snapshot.val() || [];
+            inicializarInterfaz();
+        });
     }
 
     function inicializarInterfaz() {
@@ -469,11 +449,10 @@
         const btnGuardar = document.getElementById("btnGuardar");
         btnGuardar.innerText = esAdmin ? "Save Changes" : "Save My Info";
 
-        cargarDatosDeLocalStorage();
+        renderizarTablaDesdeDatos();
 
         if (!esAdmin) {
-            const datos = obtenerDatosBD();
-            const yaRegistrado = datos.some(p => p.nombre.toLowerCase() === usuarioLogueado.toLowerCase());
+            const yaRegistrado = datosGlobalesFirebase.some(p => p.nombre.toLowerCase() === usuarioLogueado.toLowerCase());
             
             if (yaRegistrado) {
                 bloquearCamposFila(true);
@@ -552,24 +531,24 @@
         }
 
         let nuevosDatosPantalla = recolectarDatosTabla();
-        let baseDatosActual = obtenerDatosBD();
 
+        // GUARDADO REAL EN LA NUBE (Sincroniza todos los dispositivos)
         if (!esAdmin) {
             let registroParticipante = nuevosDatosPantalla[0]; 
-            let indiceExistente = baseDatosActual.findIndex(p => p.nombre.toLowerCase() === registroParticipante.nombre.toLowerCase());
+            let indiceExistente = datosGlobalesFirebase.findIndex(p => p.nombre.toLowerCase() === registroParticipante.nombre.toLowerCase());
             
             if (indiceExistente !== -1) {
-                baseDatosActual[indiceExistente] = registroParticipante;
+                datosGlobalesFirebase[indiceExistente] = registroParticipante;
             } else {
-                baseDatosActual.push(registroParticipante);
+                datosGlobalesFirebase.push(registroParticipante);
             }
-            localStorage.setItem("preferencias_participantes", JSON.stringify(baseDatosActual));
+            database.ref("preferencias").set(datosGlobalesFirebase);
         } else {
-            localStorage.setItem("preferencias_participantes", JSON.stringify(nuevosDatosPantalla));
+            database.ref("preferencias").set(nuevosDatosPantalla);
         }
 
         cambiosSinGuardar = false;
-        alert("Data successfully saved!");
+        alert("Data successfully saved across internet!");
 
         if (!esAdmin) {
             bloquearCamposFila(true);
@@ -751,20 +730,13 @@
         return datos;
     }
 
-    function obtenerDatosBD() {
-        const datosGuardados = localStorage.getItem("preferencias_participantes");
-        return datosGuardados ? JSON.parse(datosGuardados) : [];
-    }
-
-    function cargarDatosDeLocalStorage() {
-        const datos = obtenerDatosBD();
+    function renderizarTablaDesdeDatos() {
         const tbody = document.querySelector("#participantsTable tbody");
         tbody.innerHTML = ""; 
-
         contadorFilas = 0;
 
-        if (datos.length > 0) {
-            datos.forEach(participante => {
+        if (datosGlobalesFirebase.length > 0) {
+            datosGlobalesFirebase.forEach(participante => {
                 if(!esAdmin && participante.nombre.toLowerCase() !== usuarioLogueado.toLowerCase()) {
                     return; 
                 }
@@ -775,15 +747,15 @@
     }
 
     function limpiarBaseDatos() {
-        if(confirm("Are you sure you want to completely clear ALL participant data?")) {
-            localStorage.setItem("preferencias_participantes", JSON.stringify([]));
+        if(confirm("Are you sure you want to completely clear ALL participant data from the Cloud?")) {
+            database.ref("preferencias").set([]);
+            datosGlobalesFirebase = [];
             contadorFilas = 0;
             cambiosSinGuardar = false;
-            cargarDatosDeLocalStorage();
+            renderizarTablaDesdeDatos();
         }
     }
 
-    // MODERN EXCEL EXPORT - CHROME/EXCEL COMPATIBLE WITH TRANSALTED HEADERS
     function exportarExcel() {
         if(!verificarEstadoGuardado()) return;
 
@@ -798,51 +770,14 @@
         <head>
         <meta charset="utf-8"/>
         <style>
-            table {
-                border-collapse: collapse;
-                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            }
-            th {
-                background-color: #1e1b4b !important;
-                color: #ffffff !important;
-                font-weight: bold;
-                text-align: center;
-                vertical-align: middle;
-                height: 35px;
-                border: 1px solid #4f46e5;
-                font-size: 11pt;
-                white-space: nowrap;
-            }
-            td {
-                vertical-align: middle;
-                height: 28px;
-                border: 1px solid #e2e8f0;
-                font-size: 10pt;
-                color: #334155;
-                text-align: center;
-                white-space: nowrap;
-            }
-            .fila-par {
-                background-color: #ffffff;
-            }
-            .fila-impar {
-                background-color: #f8fafc;
-            }
-            .nombre-col {
-                font-weight: bold;
-                color: #1e293b;
-                text-align: left !important;
-                padding-left: 8px;
-            }
-            .badge-si {
-                background-color: #dcfce7 !important;
-                color: #15803d !important;
-                font-weight: bold;
-            }
-            .badge-no {
-                background-color: #fee2e2 !important;
-                color: #b91c1c !important;
-            }
+            table { border-collapse: collapse; font-family: 'Segoe UI', sans-serif; }
+            th { background-color: #1e1b4b !important; color: #ffffff !important; font-weight: bold; text-align: center; height: 35px; border: 1px solid #4f46e5; font-size: 11pt; white-space: nowrap; }
+            td { vertical-align: middle; height: 28px; border: 1px solid #e2e8f0; font-size: 10pt; color: #334155; text-align: center; white-space: nowrap; }
+            .fila-par { background-color: #ffffff; }
+            .fila-impar { background-color: #f8fafc; }
+            .nombre-col { font-weight: bold; color: #1e293b; text-align: left !important; padding-left: 8px; }
+            .badge-si { background-color: #dcfce7 !important; color: #15803d !important; font-weight: bold; }
+            .badge-no { background-color: #fee2e2 !important; color: #b91c1c !important; }
         </style>
         </head>
         <body>
@@ -865,7 +800,6 @@
 
         datos.forEach((p, index) => {
             const claseFila = (index % 2 === 0) ? 'fila-par' : 'fila-impar';
-            
             htmlExcel += `
                 <tr class="${claseFila}">
                     <td class="nombre-col">${p.nombre}</td>
@@ -881,11 +815,7 @@
                 </tr>`;
         });
 
-        htmlExcel += `
-            </tbody>
-        </table>
-        </body>
-        </html>`;
+        htmlExcel += `</tbody></table></body></html>`;
 
         const blob = new Blob([htmlExcel], { type: "application/vnd.ms-excel;charset=utf-8;" });
         const link = document.createElement("a");
@@ -899,22 +829,17 @@
 
     function logout() {
         if(!verificarEstadoGuardado()) return;
-
         usuarioLogueado = null;
         esAdmin = false;
         cambiosSinGuardar = false;
-        
         document.getElementById("loginForm").reset();
-        
         document.getElementById("participante-box").style.display = "flex";
         document.getElementById("chk-participante").required = true;
         document.getElementById("admin-box").style.display = "none";
         document.getElementById("chk-admin").required = false;
-
         document.getElementById("appContainer").style.display = "none";
         document.getElementById("loginCard").style.display = "block";
     }
 </script>
-
 </body>
 </html>
