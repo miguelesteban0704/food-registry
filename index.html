@@ -421,8 +421,8 @@
 
 <script>
     const firebaseConfig = { databaseURL: "https://foodregistry-f3ca5-default-rtdb.firebaseio.com/" };
-    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-    const database = firebase.database();
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
     let contadorFilas = 0;
     let usuarioLogueado = null;
     let esAdmin = false;
@@ -526,12 +526,13 @@
         marcarCambios();
     }
 
-    function renderizarTabla(datos) {
+    // 3. Función para pintar la tabla
+function renderizarTabla(datos) {
     const tablaCuerpo = document.querySelector("#participantsTable tbody");
-    tablaCuerpo.innerHTML = ""; // Limpia la tabla antes de mostrar datos nuevos
+    tablaCuerpo.innerHTML = ""; 
 
     if (datos) {
-        // Convertimos el objeto de Firebase a un array para poder recorrerlo
+        // Firebase devuelve un objeto con IDs, los convertimos a array
         Object.values(datos).forEach(item => {
             const fila = document.createElement("tr");
             fila.innerHTML = `
@@ -545,7 +546,7 @@
                 <td>${item.spiceLevel || ""}</td>
                 <td>${item.seafood || ""}</td>
                 <td>${item.restrictions || ""}</td>
-                <td class="admin-only"><button onclick="eliminarFila(this)">Eliminar</button></td>
+                <td><button onclick="eliminarFila(this)">Eliminar</button></td>
             `;
             tablaCuerpo.appendChild(fila);
         });
@@ -574,14 +575,6 @@
     database.ref("preferencias").on("value", (snapshot) => {
     const datos = snapshot.val();
     renderizarTabla(datos);
-    if (datos) {
-        console.log("Datos recibidos de Firebase:", datos);
-        // IMPORTANTE: Asegúrate de llamar aquí a la función que dibuja tu tabla
-        // Si tu función se llama distinto, cámbialo por el nombre correcto
-        renderizarTabla(datos); 
-    } else {
-        console.log("No hay datos en la base de datos.");
-    }
 });
 }
 
