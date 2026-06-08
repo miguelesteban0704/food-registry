@@ -421,8 +421,8 @@
 
 <script>
     const firebaseConfig = { databaseURL: "https://foodregistry-f3ca5-default-rtdb.firebaseio.com/" };
-if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-const database = firebase.database();
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
     let contadorFilas = 0;
     let usuarioLogueado = null;
     let esAdmin = false;
@@ -464,15 +464,15 @@ const database = firebase.database();
     }
 
     function limpiarBaseDatos() {
-    if(confirm("¿Estás seguro de que quieres borrar TODOS los datos?")) {
-        // Al enviar un null o un array vacío, Firebase borra el nodo
-        database.ref("preferencias").set(null, (error) => {
+    if(confirm("Are you sure you want to completely clear ALL participant data?")) {
+        // En lugar de borrar localmente y esperar, enviamos el array vacío a la nube
+        database.ref("preferencias").set([], (error) => {
             if (error) {
-                alert("Error al limpiar: " + error.message);
+                alert("Error clearing data: " + error.message);
             } else {
-                alert("Base de datos vaciada correctamente.");
-                // Como tienes un .on('value') en tu inicio, 
-                // esto refrescará la tabla automáticamente.
+                // Al limpiar Firebase, el evento .on('value') disparará automáticamente 
+                // la actualización de la tabla.
+                alert("All data cleared successfully.");
             }
         });
     }
@@ -526,33 +526,6 @@ const database = firebase.database();
         marcarCambios();
     }
 
-    // 3. Función para pintar la tabla
-function renderizarTabla(datos) {
-    const tablaCuerpo = document.querySelector("#participantsTable tbody");
-    tablaCuerpo.innerHTML = ""; 
-
-    if (datos) {
-        // Firebase devuelve un objeto con IDs, los convertimos a array
-        Object.values(datos).forEach(item => {
-            const fila = document.createElement("tr");
-            fila.innerHTML = `
-                <td>${item.nombre || ""}</td>
-                <td>${item.breakfast || ""}</td>
-                <td>${item.lunch || ""}</td>
-                <td>${item.dinner || ""}</td>
-                <td>${item.dietType || ""}</td>
-                <td>${item.protein || ""}</td>
-                <td>${item.mainBase || ""}</td>
-                <td>${item.spiceLevel || ""}</td>
-                <td>${item.seafood || ""}</td>
-                <td>${item.restrictions || ""}</td>
-                <td><button onclick="eliminarFila(this)">Eliminar</button></td>
-            `;
-            tablaCuerpo.appendChild(fila);
-        });
-    }
-}
-
     function ejecutarGuardado() {
     
     let nuevosDatos = recolectarDatosTabla();
@@ -572,10 +545,16 @@ function renderizarTabla(datos) {
     localStorage.setItem("preferencias_participantes", JSON.stringify(baseDatosActual));
 
     // 2. Sincronizar con Firebase
-    database.ref("preferencias").on("value", (snapshot) => {
-    const datos = snapshot.val();
-    renderizarTabla(datos);
-});
+    database.ref("preferencias").set(baseDatosActual)
+    .then(() => {
+        alert("¡Guardado correctamente en la nube!");
+        cambiosSinGuardar = false;
+        // NO recargues la página aquí para no perder el estado
+        inicializarInterfaz();
+    })
+    .catch((error) => {
+        alert("Error al guardar: " + error.message);
+    });
 }
 
     function habilitarModoEdicion() {
@@ -606,24 +585,22 @@ function renderizarTabla(datos) {
     }
 
     function eliminarFila(boton) {
-    // 1. Eliminamos de la vista primero
+    // Eliminamos la fila de la interfaz
     boton.closest("tr").remove();
     
-    // 2. Recolectamos lo que queda
+    // Recolectamos los datos que quedaron en la tabla
     let datosRestantes = recolectarDatosTabla();
-
-    // 3. ACTUALIZACIÓN SEGURA: 
-    // Usamos .set() pero solo después de haber confirmado qué estamos enviando
-    if (datosRestantes !== null) {
-        database.ref("preferencias").set(datosRestantes)
-        .then(() => {
+    
+    // Guardamos el nuevo estado (sin la fila eliminada) en Firebase
+    database.ref("preferencias").set(datosRestantes, (error) => {
+        if (error) {
+            alert("Error updating data: " + error.message);
+        } else {
+            // Actualizamos el respaldo local
             localStorage.setItem("preferencias_participantes", JSON.stringify(datosRestantes));
-            console.log("Fila eliminada correctamente.");
-        })
-        .catch((error) => {
-            alert("Error al sincronizar: " + error.message);
-        });
-    }
+            console.log("Fila eliminada y base de datos sincronizada.");
+        }
+    });
 }
 
     function recolectarDatosTabla() {
