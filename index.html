@@ -694,6 +694,45 @@ select optgroup{
 
     font-weight:600;
 }
+    /* Nuevo contenedor de scroll para la tabla */
+.table-container {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 10px;
+}
+
+/* Asegurar que la tabla no sea más pequeña que su contenido */
+#participantsTable {
+    min-width: 900px; /* Ancho mínimo para que los campos no se aplasten */
+}
+
+/* Mejora para inputs en móviles */
+input[type="text"], 
+.premium-select {
+    min-width: 120px; /* Evita que los inputs sean invisibles en pantallas muy pequeñas */
+}
+
+/* Ajustes adicionales en el bloque media query de 768px */
+@media(max-width:768px){
+    .container {
+        padding: 15px;
+        border-radius: 20px;
+    }
+    
+    .header-app {
+        text-align: center;
+    }
+
+    h2 {
+        font-size: 1.5rem;
+    }
+
+    /* Mejora el espaciado de botones en móvil */
+    .btn-container > div {
+        gap: 8px;
+    }
+}
 </style>
 </head>
 <body>
@@ -730,26 +769,27 @@ select optgroup{
 
     <form id="foodForm" onsubmit="event.preventDefault();">
         <div class="table-wrapper">
-            <table id="participantsTable">
-                <thead>
-                    <tr>
-                        <th style="width: 50px; text-align: center;">No.</th>
-                        <th>Participant Name</th>
-                        <th>Breakfast</th>
-                        <th>Lunch</th>
-                        <th>Dinner</th>
-                        <th>Diet Type</th>
-                        <th>Protein</th>
-                        <th>Main Base</th>
-                        <th>Spice Level</th>
-                        <th>Seafood/Fish</th>
-                        <th>Restrictions/Allergies</th>
-                        <th class="col-accion admin-only">Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    </tbody>
-            </table>
+            <div class="table-container">
+                <table id="participantsTable">
+                    <thead>
+                        <tr>
+                            <th style="width: 50px; text-align: center;">No.</th>
+                            <th>Participant Name</th>
+                            <th>Breakfast</th>
+                            <th>Lunch</th>
+                            <th>Dinner</th>
+                            <th>Diet Type</th>
+                            <th>Protein</th>
+                            <th>Main Base</th>
+                            <th>Spice Level</th>
+                            <th>Seafood/Fish</th>
+                            <th>Restrictions/Allergies</th>
+                            <th class="col-accion admin-only">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        </tbody>
+                </table>
         </div>
 
         <div class="btn-container">
